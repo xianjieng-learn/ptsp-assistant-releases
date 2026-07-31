@@ -1,0 +1,2 @@
+Dispatch PTSP Assistant v3.0.12 publisher through workflow_dispatch.
+Attempt: 3
