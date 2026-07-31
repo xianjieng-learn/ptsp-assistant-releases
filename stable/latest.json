@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "suiteVersion": "3.0.4",
+  "extensionVersion": "3.0.4",
+  "updaterVersion": "1.0.0",
+  "minimumNativeHost": "1.13.0",
+  "publishedAt": "2026-07-31T17:45:00+07:00",
+  "mandatory": false,
+  "components": {
+    "extension": "3.0.4",
+    "credentialNativeHost": "1.13.0",
+    "updateAgent": "1.0.0",
+    "fileDialogHost": "bundled",
+    "converterHost": "bundled",
+    "sharing": "bundled"
+  },
+  "installer": {
+    "name": "PTSP-Assistant-Setup-v3.0.4-FULL-SHARING.exe",
+    "url": "https://github.com/xianjieng-learn/ptsp-assistant-releases/releases/download/v3.0.4/PTSP-Assistant-Setup-v3.0.4-FULL-SHARING.exe",
+    "sha256": "bd1aaa247a4461095e21975b56c2f81b005e9a63d1f4bcf2c3aafc47a5a08c2f",
+    "size": 30947328
+  },
+  "changes": [
+    "Menambahkan deteksi pembaruan otomatis melalui repository GitHub resmi.",
+    "Menambahkan tombol Update Sekarang pada banner Side Panel dan Status Sistem.",
+    "Menambahkan PTSP Update Agent dengan verifikasi sumber, ukuran, dan SHA-256 installer.",
+    "Installer dapat memperbarui extension dan komponen Windows dalam satu alur.",
+    "Hotfix pengambilan SKUM dari SIPP tetap dipertahankan."
+  ]
+}
