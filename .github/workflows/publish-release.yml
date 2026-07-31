@@ -69,7 +69,6 @@ jobs:
       - name: Verify public asset URL
         shell: bash
         env:
-          URL: ${{ fromJSON(format('{0}', toJSON(''))) }}
           VERSION: ${{ steps.manifest.outputs.version }}
           ASSET_NAME: ${{ steps.manifest.outputs.name }}
         run: |
