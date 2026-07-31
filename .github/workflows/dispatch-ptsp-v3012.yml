@@ -14,6 +14,10 @@ jobs:
   dispatch-and-wait:
     runs-on: ubuntu-latest
     steps:
+      - name: Record dispatch start time
+        id: start
+        run: echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Dispatch publisher workflow
         env:
           GH_TOKEN: ${{ github.token }}
@@ -23,22 +27,23 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --ref main
 
-      - name: Find dispatched run
+      - name: Find newly dispatched run
         id: run
         env:
           GH_TOKEN: ${{ github.token }}
+          STARTED_AT: ${{ steps.start.outputs.started_at }}
         run: |
           set -euo pipefail
           RUN_ID=""
-          for attempt in $(seq 1 20); do
-            RUN_ID=$(gh run list \
+          for attempt in $(seq 1 30); do
+            RUNS=$(gh run list \
               --repo "$GITHUB_REPOSITORY" \
               --workflow publish-ptsp-v3012.yml \
               --event workflow_dispatch \
               --branch main \
-              --limit 1 \
-              --json databaseId,createdAt \
-              --jq '.[0].databaseId // empty')
+              --limit 20 \
+              --json databaseId,createdAt)
+            RUN_ID=$(python -c 'import json,os,sys; runs=json.load(sys.stdin); started=os.environ["STARTED_AT"]; fresh=[r for r in runs if r.get("createdAt","") >= started]; fresh.sort(key=lambda r:r.get("createdAt","")); print(fresh[-1]["databaseId"] if fresh else "")' <<< "$RUNS")
             if [ -n "$RUN_ID" ]; then
               break
             fi
