@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "suiteVersion": "3.0.7",
+  "extensionVersion": "3.0.7",
+  "updaterVersion": "1.14.1",
+  "minimumNativeHost": "1.13.0",
+  "publishedAt": "2026-07-31T19:25:00+07:00",
+  "mandatory": false,
+  "components": {
+    "extension": "3.0.7",
+    "credentialNativeHost": "1.13.0",
+    "integratedUpdaterHost": "1.14.1",
+    "updateHelper": "1.0.1",
+    "fileDialogHost": "bundled",
+    "converterHost": "bundled",
+    "sharing": "bundled"
+  },
+  "installer": {
+    "name": "PTSP-Assistant-Setup-v3.0.7-FULL-SHARING.exe",
+    "url": "https://github.com/xianjieng-learn/ptsp-assistant-releases/releases/download/v3.0.7/PTSP-Assistant-Setup-v3.0.7-FULL-SHARING.exe",
+    "sha256": "4be6612c809613bf468ce1d6d89b2a965d4018782b30281d4b52fd02c2a1ab06",
+    "size": 33550336
+  },
+  "changes": [
+    "Memperbarui data pekerjaan dari halaman detail e-Court aktif ketika nama pihak utama cocok.",
+    "Mengganti nomor pendaftaran online, nomor pembayaran, efiling ID, dan nomor perkara lama dengan nilai halaman aktif.",
+    "Menolak seluruh data perkara e-Court ketika nama Penggugat/Pemohon/Pelawan 1 berbeda atau tidak terbaca.",
+    "Mencatat pergantian data dalam riwayat pekerjaan.",
+    "Mempertahankan updater terpadu Native Host dan pengambilan SKUM dari SIPP."
+  ]
+}
