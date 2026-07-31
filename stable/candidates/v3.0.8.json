@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "suiteVersion": "3.0.8",
+  "extensionVersion": "3.0.8",
+  "updaterVersion": "1.14.1",
+  "minimumNativeHost": "1.13.0",
+  "publishedAt": "2026-07-31T19:45:00+07:00",
+  "mandatory": false,
+  "components": {
+    "extension": "3.0.8",
+    "credentialNativeHost": "1.13.0",
+    "integratedUpdaterHost": "1.14.1",
+    "updateHelper": "1.0.1",
+    "fileDialogHost": "bundled",
+    "converterHost": "bundled",
+    "sharing": "bundled"
+  },
+  "installer": {
+    "name": "PTSP-Assistant-Setup-v3.0.8-FULL-SHARING.exe",
+    "url": "https://github.com/xianjieng-learn/ptsp-assistant-releases/releases/download/v3.0.8/PTSP-Assistant-Setup-v3.0.8-FULL-SHARING.exe",
+    "sha256": "5a55f19e59eea9669072fbe46d5612da0ea8090680bcefc762969ba9f81cdc04",
+    "size": 33553408
+  },
+  "changes": [
+    "Memperbaiki deteksi halaman detail Data Umum SIPP v6.2.4.",
+    "Mendeteksi Data Anak pada tabel bersarang tampilan baca-saja.",
+    "Memvalidasi nama pihak utama SIPP sebelum memperbarui pekerjaan.",
+    "Melanjutkan otomatis ke SKUM SIPP, flyer, dan WhatsApp setelah detail perkara lengkap.",
+    "Mencegah proses otomatis dijalankan dua kali oleh pemindaian berulang."
+  ]
+}
