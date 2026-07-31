@@ -57,6 +57,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run watch "${{ steps.run.outputs.run_id }}" \
+          set -euo pipefail
+          RUN_ID="${{ steps.run.outputs.run_id }}"
+          if ! gh run watch "$RUN_ID" \
             --repo "$GITHUB_REPOSITORY" \
-            --exit-status
+            --exit-status; then
+            echo "Publisher failed; printing failed-step logs"
+            gh run view "$RUN_ID" \
+              --repo "$GITHUB_REPOSITORY" \
+              --log-failed || true
+            exit 1
+          fi
