@@ -1,0 +1,147 @@
+name: Publish PTSP Assistant release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "upload/3.0.11/complete.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      UPLOAD_DIR: upload/3.0.11
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read package metadata
+        id: meta
+        shell: python
+        run: |
+          import json, os
+          from pathlib import Path
+
+          meta = json.loads(Path(os.environ["UPLOAD_DIR"] + "/package.json").read_text(encoding="utf-8"))
+          required = ["version", "tag", "assetName", "size", "sha256", "parts"]
+          missing = [key for key in required if key not in meta]
+          if missing:
+              raise SystemExit(f"Missing metadata: {missing}")
+          if meta["tag"] != "v" + meta["version"]:
+              raise SystemExit("Tag and version do not match")
+          if not meta["assetName"].lower().endswith(".exe"):
+              raise SystemExit("Release asset must be an EXE")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              for key in required:
+                  output.write(f"{key}={meta[key]}\n")
+
+      - name: Assemble and verify installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_PARTS="${{ steps.meta.outputs.parts }}"
+          mapfile -t PARTS < <(find "$UPLOAD_DIR" -maxdepth 1 -type f -name 'part-*.txt' | sort)
+          test "${#PARTS[@]}" -eq "$EXPECTED_PARTS"
+
+          mkdir -p dist
+          ASSET="dist/${{ steps.meta.outputs.assetName }}"
+          cat "${PARTS[@]}" | base64 --decode > "$ASSET"
+
+          test "$(stat -c%s "$ASSET")" = "${{ steps.meta.outputs.size }}"
+          echo "${{ steps.meta.outputs.sha256 }}  $ASSET" | sha256sum -c -
+          file "$ASSET" | grep -Eq 'PE32|MS Windows'
+
+      - name: Create release and upload installer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.meta.outputs.tag }}"
+          ASSET="dist/${{ steps.meta.outputs.assetName }}"
+          NOTES="releases/${{ steps.meta.outputs.version }}.md"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --clobber
+            gh release edit "$TAG" --title "PTSP Assistant $TAG" --notes-file "$NOTES" --latest
+          else
+            gh release create "$TAG" "$ASSET" \
+              --title "PTSP Assistant $TAG" \
+              --notes-file "$NOTES" \
+              --latest
+          fi
+
+      - name: Verify public release asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.tag }}/${{ steps.meta.outputs.assetName }}"
+          TMP=$(mktemp)
+          for attempt in 1 2 3 4 5; do
+            STATUS=$(curl --location --silent --show-error --output "$TMP" --write-out "%{http_code}" "$URL" || true)
+            if [ "$STATUS" = "200" ]; then
+              break
+            fi
+            sleep $((attempt * 3))
+          done
+          test "$STATUS" = "200"
+          test "$(stat -c%s "$TMP")" = "${{ steps.meta.outputs.size }}"
+          echo "${{ steps.meta.outputs.sha256 }}  $TMP" | sha256sum -c -
+
+      - name: Activate stable manifest
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          version = "${{ steps.meta.outputs.version }}"
+          tag = "${{ steps.meta.outputs.tag }}"
+          asset = "${{ steps.meta.outputs.assetName }}"
+          manifest = {
+              "schemaVersion": 1,
+              "channel": "stable",
+              "suiteVersion": version,
+              "extensionVersion": version,
+              "updaterVersion": "1.14.1",
+              "minimumNativeHost": "1.14.1",
+              "publishedAt": "2026-08-01T04:35:00+07:00",
+              "mandatory": False,
+              "components": {
+                  "extension": version,
+                  "credentialNativeHost": "1.13.0",
+                  "integratedUpdaterHost": "1.14.1",
+                  "updateHelper": "1.0.1",
+                  "fileDialogHost": "bundled",
+                  "converterHost": "bundled",
+                  "sharing": "bundled"
+              },
+              "installer": {
+                  "name": asset,
+                  "url": f"https://github.com/${{ github.repository }}/releases/download/{tag}/{asset}",
+                  "sha256": "${{ steps.meta.outputs.sha256 }}",
+                  "size": int("${{ steps.meta.outputs.size }}")
+              },
+              "changes": [
+                  "Memindahkan preview pihak, Data Umum SIPP, dan Data Anak ke submenu Autofill.",
+                  "Memulihkan tombol konversi DOCX ke PDF pada menu Konverter.",
+                  "Memperbaiki antrean otomatis pengambilan SKUM SIPP dan pembuatan flyer Santrimo.",
+                  "Data Umum dan Data Anak tidak menjadi syarat untuk memproses SKUM dan flyer.",
+                  "Mempertahankan validasi kecocokan nama pihak utama sebelum data perkara dipakai."
+              ]
+          }
+          Path("stable/latest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+      - name: Commit stable manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stable/latest.json
+          git diff --cached --quiet || git commit -m "Publish PTSP Assistant ${{ steps.meta.outputs.tag }}"
+          git push
