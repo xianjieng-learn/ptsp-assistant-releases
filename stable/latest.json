@@ -5,7 +5,7 @@
   "extensionVersion": "3.0.4",
   "updaterVersion": "1.0.0",
   "minimumNativeHost": "1.13.0",
-  "publishedAt": "2026-07-31T17:45:00+07:00",
+  "publishedAt": "2026-07-31T17:55:00+07:00",
   "mandatory": false,
   "components": {
     "extension": "3.0.4",
@@ -18,8 +18,8 @@
   "installer": {
     "name": "PTSP-Assistant-Setup-v3.0.4-FULL-SHARING.exe",
     "url": "https://github.com/xianjieng-learn/ptsp-assistant-releases/releases/download/v3.0.4/PTSP-Assistant-Setup-v3.0.4-FULL-SHARING.exe",
-    "sha256": "bd1aaa247a4461095e21975b56c2f81b005e9a63d1f4bcf2c3aafc47a5a08c2f",
-    "size": 30947328
+    "sha256": "59efbe922f17b68d2da5a2af902b3dbcbb74c834160cc000d78a1a52a38b2b89",
+    "size": 31037952
   },
   "changes": [
     "Menambahkan deteksi pembaruan otomatis melalui repository GitHub resmi.",
