@@ -48,6 +48,7 @@ internal static class Program
             string zipPath = Path.Combine(temp, "payload.zip");
             File.WriteAllBytes(zipPath, zipBytes);
             ZipFile.ExtractToDirectory(zipPath, payloadDir);
+            PreparePayloadVersion(payloadDir);
 
             string backupRoot = Path.Combine(root, "Backups", "extension-" + Sanitize(currentVersion ?? "unknown") + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             Directory.CreateDirectory(backupRoot);
@@ -99,6 +100,30 @@ internal static class Program
                     MessageBoxIcon.Error);
             }
             return 1;
+        }
+    }
+
+    private static void PreparePayloadVersion(string payloadDir)
+    {
+        string backgroundPath = Path.Combine(payloadDir, "background.js");
+        if (File.Exists(backgroundPath))
+        {
+            string background = File.ReadAllText(backgroundPath, Encoding.UTF8)
+                .Replace("3.0.11", TargetVersion);
+            File.WriteAllText(backgroundPath, background, new UTF8Encoding(false));
+        }
+
+        string manifestPath = Path.Combine(payloadDir, "manifest.json");
+        if (File.Exists(manifestPath))
+        {
+            string manifest = File.ReadAllText(manifestPath, Encoding.UTF8);
+            manifest = Regex.Replace(
+                manifest,
+                "(\\\"version\\\"\\s*:\\s*\\\")[^\\\"]+(\\\")",
+                match => match.Groups[1].Value + TargetVersion + match.Groups[2].Value,
+                1);
+            manifest = manifest.Replace("v3.0.11", "v" + TargetVersion);
+            File.WriteAllText(manifestPath, manifest, new UTF8Encoding(false));
         }
     }
 
