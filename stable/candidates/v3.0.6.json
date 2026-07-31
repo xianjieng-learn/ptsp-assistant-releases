@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "suiteVersion": "3.0.6",
+  "extensionVersion": "3.0.6",
+  "updaterVersion": "1.14.1",
+  "minimumNativeHost": "1.13.0",
+  "publishedAt": "2026-07-31T18:55:00+07:00",
+  "mandatory": false,
+  "components": {
+    "extension": "3.0.6",
+    "credentialNativeHost": "1.13.0",
+    "integratedUpdaterHost": "1.14.1",
+    "updateHelper": "1.0.1",
+    "fileDialogHost": "bundled",
+    "converterHost": "bundled",
+    "sharing": "bundled"
+  },
+  "installer": {
+    "name": "PTSP-Assistant-Setup-v3.0.6-FULL-SHARING.exe",
+    "url": "https://github.com/xianjieng-learn/ptsp-assistant-releases/releases/download/v3.0.6/PTSP-Assistant-Setup-v3.0.6-FULL-SHARING.exe",
+    "sha256": "4d720fd96789d6ceaad681e2c7b245983193ccfe38fcf0d39d5e1fd6ace2834e",
+    "size": 33548288
+  },
+  "changes": [
+    "Memperbaiki registrasi updater Native Host pada registry Windows 32-bit dan 64-bit.",
+    "Memverifikasi Native Host updater sebelum installer menyatakan berhasil.",
+    "Memperjelas tampilan ketika versi lokal lebih baru daripada rilis stable.",
+    "Mencegah nomor pendaftaran dan nomor pembayaran e-Court masuk ke pekerjaan dengan nama pihak utama yang berbeda.",
+    "Mempertahankan pengambilan SKUM dari SIPP."
+  ]
+}
