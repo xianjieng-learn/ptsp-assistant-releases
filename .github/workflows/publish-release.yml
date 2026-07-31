@@ -1,0 +1,77 @@
+name: Publish PTSP Assistant Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      asset_url:
+        description: Direct HTTPS URL of the installer EXE
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read stable manifest
+        id: manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "version=$(jq -r '.suiteVersion' stable/latest.json)" >> "$GITHUB_OUTPUT"
+          echo "name=$(jq -r '.installer.name' stable/latest.json)" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(jq -r '.installer.sha256' stable/latest.json)" >> "$GITHUB_OUTPUT"
+          echo "size=$(jq -r '.installer.size' stable/latest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Download installer
+        shell: bash
+        env:
+          ASSET_URL: ${{ inputs.asset_url }}
+          ASSET_NAME: ${{ steps.manifest.outputs.name }}
+        run: |
+          set -euo pipefail
+          test "${ASSET_URL#https://}" != "$ASSET_URL"
+          curl --fail --location --retry 3 --output "$ASSET_NAME" "$ASSET_URL"
+
+      - name: Verify installer
+        shell: bash
+        env:
+          ASSET_NAME: ${{ steps.manifest.outputs.name }}
+          EXPECTED_SHA256: ${{ steps.manifest.outputs.sha256 }}
+          EXPECTED_SIZE: ${{ steps.manifest.outputs.size }}
+        run: |
+          set -euo pipefail
+          test "$(stat -c '%s' "$ASSET_NAME")" = "$EXPECTED_SIZE"
+          echo "$EXPECTED_SHA256  $ASSET_NAME" | sha256sum --check --strict
+          file "$ASSET_NAME" | grep -q 'PE32+'
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.manifest.outputs.version }}
+          ASSET_NAME: ${{ steps.manifest.outputs.name }}
+        run: |
+          set -euo pipefail
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET_NAME" --clobber
+          else
+            gh release create "$TAG" "$ASSET_NAME" \
+              --title "PTSP Assistant $TAG" \
+              --notes-file "releases/$TAG.md"
+          fi
+
+      - name: Verify public asset URL
+        shell: bash
+        env:
+          URL: ${{ fromJSON(format('{0}', toJSON(''))) }}
+          VERSION: ${{ steps.manifest.outputs.version }}
+          ASSET_NAME: ${{ steps.manifest.outputs.name }}
+        run: |
+          set -euo pipefail
+          curl --fail --head --location "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}/${ASSET_NAME}"
