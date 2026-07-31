@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "suiteVersion": "3.0.9",
+  "extensionVersion": "3.0.9",
+  "updaterVersion": "1.14.1",
+  "minimumNativeHost": "1.13.0",
+  "publishedAt": "2026-07-31T20:05:00+07:00",
+  "mandatory": false,
+  "components": {
+    "extension": "3.0.9",
+    "credentialNativeHost": "1.13.0",
+    "integratedUpdaterHost": "1.14.1",
+    "updateHelper": "1.0.1",
+    "fileDialogHost": "bundled",
+    "converterHost": "bundled",
+    "sharing": "bundled"
+  },
+  "installer": {
+    "name": "PTSP-Assistant-Setup-v3.0.9-FULL-SHARING.exe",
+    "url": "https://github.com/xianjieng-learn/ptsp-assistant-releases/releases/download/v3.0.9/PTSP-Assistant-Setup-v3.0.9-FULL-SHARING.exe",
+    "sha256": "0fa88bd3b25d53f8dc76c25ad71067019abec823ce36788278ec0e2df538584d",
+    "size": 33531392
+  },
+  "changes": [
+    "SKUM dan flyer Santrimo diproses setelah nomor perkara tersedia meskipun Data Umum atau Data Anak belum lengkap.",
+    "Halaman detail SIPP hanya mengunduh SKUM dan membuat flyer tanpa membuka WhatsApp.",
+    "Pencocokan nama pihak utama tetap menjadi pengaman.",
+    "Memperbaiki nomor perkara yang sebelumnya dapat membawa angka tanggal setelah kode pengadilan.",
+    "Membuat ulang flyer bila flyer lama berasal dari perkara lain."
+  ]
+}
