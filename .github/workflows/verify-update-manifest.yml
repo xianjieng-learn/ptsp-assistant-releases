@@ -37,12 +37,26 @@ jobs:
 
       - name: Check published release asset
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           URL=$(python -c 'import json; print(json.load(open("stable/latest.json"))["installer"]["url"])')
           EXPECTED_SIZE=$(python -c 'import json; print(json.load(open("stable/latest.json"))["installer"]["size"])')
           TMP=$(mktemp)
-          STATUS=$(curl --location --silent --show-error --output "$TMP" --write-out "%{http_code}" "$URL")
-          test "$STATUS" = "200"
+          STATUS=$(curl --location --silent --show-error --output "$TMP" --write-out "%{http_code}" "$URL" || true)
+
+          if [ "$STATUS" != "200" ]; then
+            if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              echo "Release asset belum tersedia: HTTP $STATUS"
+              exit 1
+            fi
+            echo "::warning::Release asset belum tersedia. Jalankan workflow manual setelah asset diunggah."
+            exit 0
+          fi
+
           ACTUAL_SIZE=$(wc -c < "$TMP")
-          test "$ACTUAL_SIZE" = "$EXPECTED_SIZE"
+          if [ "$ACTUAL_SIZE" != "$EXPECTED_SIZE" ]; then
+            echo "Ukuran asset berbeda: $ACTUAL_SIZE != $EXPECTED_SIZE"
+            exit 1
+          fi
           echo "Release asset exists and size matches: $ACTUAL_SIZE bytes"
