@@ -1,0 +1,64 @@
+name: Dispatch corrected PTSP Assistant v3.0.12 publisher
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "diagnostics/publish-v3012-v2.txt"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch-and-wait:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record dispatch start time
+        id: start
+        run: echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch corrected publisher workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run publish-ptsp-v3012-v2.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main
+
+      - name: Find newly dispatched run
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STARTED_AT: ${{ steps.start.outputs.started_at }}
+        run: |
+          set -euo pipefail
+          RUN_ID=""
+          for attempt in $(seq 1 30); do
+            RUNS=$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow publish-ptsp-v3012-v2.yml \
+              --event workflow_dispatch \
+              --branch main \
+              --limit 20 \
+              --json databaseId,createdAt)
+            RUN_ID=$(python -c 'import json,os,sys; runs=json.load(sys.stdin); started=os.environ["STARTED_AT"]; fresh=[r for r in runs if r.get("createdAt","") >= started]; fresh.sort(key=lambda r:r.get("createdAt","")); print(fresh[-1]["databaseId"] if fresh else "")' <<< "$RUNS")
+            if [ -n "$RUN_ID" ]; then break; fi
+            sleep 3
+          done
+          test -n "$RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Publisher run: $RUN_ID"
+
+      - name: Wait for corrected publisher result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ steps.run.outputs.run_id }}"
+          if ! gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status; then
+            echo "Publisher failed; printing failed-step logs"
+            gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed || true
+            exit 1
+          fi
