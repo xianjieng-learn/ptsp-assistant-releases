@@ -1,0 +1,57 @@
+name: Dispatch PTSP Assistant v3.0.12 publisher
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "diagnostics/publish-v3012.txt"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch-and-wait:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch publisher workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run publish-ptsp-v3012.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main
+
+      - name: Find dispatched run
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID=""
+          for attempt in $(seq 1 20); do
+            RUN_ID=$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow publish-ptsp-v3012.yml \
+              --event workflow_dispatch \
+              --branch main \
+              --limit 1 \
+              --json databaseId,createdAt \
+              --jq '.[0].databaseId // empty')
+            if [ -n "$RUN_ID" ]; then
+              break
+            fi
+            sleep 3
+          done
+          test -n "$RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Publisher run: $RUN_ID"
+
+      - name: Wait for publisher result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run watch "${{ steps.run.outputs.run_id }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --exit-status
