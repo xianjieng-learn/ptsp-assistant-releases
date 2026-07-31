@@ -1,0 +1,48 @@
+name: Verify update manifest
+
+on:
+  push:
+    paths:
+      - "stable/latest.json"
+      - "stable/schema.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON and required fields
+        shell: python
+        run: |
+          import json, re
+          from pathlib import Path
+
+          manifest = json.loads(Path("stable/latest.json").read_text(encoding="utf-8"))
+          assert manifest["channel"] == "stable"
+          assert re.fullmatch(r"\d+(?:\.\d+){1,3}", manifest["suiteVersion"])
+          installer = manifest["installer"]
+          assert installer["name"].lower().endswith(".exe")
+          assert installer["url"].startswith(
+              "https://github.com/xianjieng-learn/ptsp-assistant-releases/releases/download/"
+          )
+          assert re.fullmatch(r"[a-f0-9]{64}", installer["sha256"])
+          assert 1024 <= int(installer["size"]) <= 262_144_000
+          assert isinstance(manifest.get("changes"), list)
+          print("Manifest structure: OK")
+
+      - name: Check published release asset
+        shell: bash
+        run: |
+          URL=$(python -c 'import json; print(json.load(open("stable/latest.json"))["installer"]["url"])')
+          EXPECTED_SIZE=$(python -c 'import json; print(json.load(open("stable/latest.json"))["installer"]["size"])')
+          TMP=$(mktemp)
+          STATUS=$(curl --location --silent --show-error --output "$TMP" --write-out "%{http_code}" "$URL")
+          test "$STATUS" = "200"
+          ACTUAL_SIZE=$(wc -c < "$TMP")
+          test "$ACTUAL_SIZE" = "$EXPECTED_SIZE"
+          echo "Release asset exists and size matches: $ACTUAL_SIZE bytes"
