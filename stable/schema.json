@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/xianjieng-learn/ptsp-assistant-releases/main/stable/schema.json",
+  "title": "PTSP Assistant Stable Update Manifest",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "channel",
+    "suiteVersion",
+    "extensionVersion",
+    "updaterVersion",
+    "installer",
+    "changes"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "channel": { "const": "stable" },
+    "suiteVersion": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+){1,3}$" },
+    "extensionVersion": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+){1,3}$" },
+    "updaterVersion": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+){1,3}$" },
+    "minimumNativeHost": { "type": "string" },
+    "publishedAt": { "type": "string" },
+    "mandatory": { "type": "boolean" },
+    "components": { "type": "object", "additionalProperties": { "type": "string" } },
+    "installer": {
+      "type": "object",
+      "required": ["name", "url", "sha256", "size"],
+      "properties": {
+        "name": { "type": "string", "pattern": "\\.exe$" },
+        "url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/xianjieng-learn/ptsp-assistant-releases/releases/download/"
+        },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "size": { "type": "integer", "minimum": 1024, "maximum": 262144000 }
+      },
+      "additionalProperties": false
+    },
+    "changes": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "additionalProperties": true
+}
