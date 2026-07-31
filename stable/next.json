@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "suiteVersion": "3.0.5",
+  "extensionVersion": "3.0.5",
+  "updaterHostVersion": "1.14.0",
+  "updateHelperVersion": "1.0.1",
+  "minimumNativeHost": "1.14.0",
+  "publishedAt": "2026-07-31T18:35:00+07:00",
+  "mandatory": false,
+  "components": {
+    "extension": "3.0.5",
+    "credentialNativeHost": "1.13.0",
+    "integratedUpdaterHost": "1.14.0",
+    "temporaryUpdateHelper": "1.0.1",
+    "fileDialogHost": "bundled",
+    "converterHost": "bundled",
+    "sharing": "bundled"
+  },
+  "installer": {
+    "name": "PTSP-Assistant-Setup-v3.0.5-FULL-SHARING.exe",
+    "url": "https://github.com/xianjieng-learn/ptsp-assistant-releases/releases/download/v3.0.5/PTSP-Assistant-Setup-v3.0.5-FULL-SHARING.exe",
+    "sha256": "95674b71c0a7c4ce9de5436b9335613e4b1c119d8e155ddc69b8182fbf917c45",
+    "size": 33262592
+  },
+  "changes": [
+    "Menggabungkan proses pembaruan ke Native Host utama yang sudah terpasang.",
+    "Menghapus kebutuhan memasang atau membuka Update Agent terpisah.",
+    "Menambahkan helper sementara untuk mengganti Native Host dengan aman setelah proses lama berhenti.",
+    "Membersihkan registry dan folder Update Agent v3.0.4.",
+    "Mempertahankan hotfix SKUM SIPP dan alur otomatis yang sudah ada."
+  ]
+}
