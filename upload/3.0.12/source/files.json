@@ -1,0 +1,74 @@
+[
+  {
+    "path": "background.js",
+    "sha256": "a150bacffc6d68c0eb0035a9afc1ad2842e76eef9aa7ad8ada07ba69a989b9a6",
+    "size": 308378,
+    "gzipSize": 62899,
+    "base64Size": 83868,
+    "parts": 7,
+    "key": "background.js"
+  },
+  {
+    "path": "modules/converter/index.css",
+    "sha256": "68542cad5b13693d97e825cd8b8dd8b743c96dabbedfc4358a084af78788b6dd",
+    "size": 4552,
+    "gzipSize": 1519,
+    "base64Size": 2028,
+    "parts": 1,
+    "key": "modules__converter__index.css"
+  },
+  {
+    "path": "modules/converter/index.html",
+    "sha256": "2f62b35f70fa0a3233f2f34dd0a56d34b2a8dd684062cea6f0cca2f20e8b9ed0",
+    "size": 2861,
+    "gzipSize": 1229,
+    "base64Size": 1640,
+    "parts": 1,
+    "key": "modules__converter__index.html"
+  },
+  {
+    "path": "modules/converter/index.js",
+    "sha256": "9592b245c95f7bf25ebced60d3282a5ebea2aa2ed4c5b80d4cc158d9da3c81c4",
+    "size": 7811,
+    "gzipSize": 2225,
+    "base64Size": 2968,
+    "parts": 1,
+    "key": "modules__converter__index.js"
+  },
+  {
+    "path": "modules/workflow/workflow.css",
+    "sha256": "629164eee1ba4827eb14752880048d783b626b5e1d2c26fd35df2accf5f5d14e",
+    "size": 28444,
+    "gzipSize": 5844,
+    "base64Size": 7792,
+    "parts": 1,
+    "key": "modules__workflow__workflow.css"
+  },
+  {
+    "path": "modules/workflow/workflow.js",
+    "sha256": "5a625a540ab3cb872428136470f3704469a86b7ec49148a0e49da6ba9a1e572f",
+    "size": 122922,
+    "gzipSize": 31230,
+    "base64Size": 41640,
+    "parts": 4,
+    "key": "modules__workflow__workflow.js"
+  },
+  {
+    "path": "sidepanel.js",
+    "sha256": "6e81c963599dc421106f75f091b8af280ead3de339c1e1b87064c2aea7ac79ad",
+    "size": 13597,
+    "gzipSize": 3647,
+    "base64Size": 4864,
+    "parts": 1,
+    "key": "sidepanel.js"
+  },
+  {
+    "path": "manifest.json",
+    "sha256": "48d36faa345a2859f31642540258944a9c2dfee6011cb4b43f14f9b13cf05407",
+    "size": 3087,
+    "gzipSize": 1239,
+    "base64Size": 1652,
+    "parts": 1,
+    "key": "manifest.json"
+  }
+]
