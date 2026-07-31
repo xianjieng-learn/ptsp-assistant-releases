@@ -1,0 +1,221 @@
+name: Publish PTSP Assistant v3.0.12 v2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    env:
+      VERSION: 3.0.12
+      TAG: v3.0.12
+      ASSET_NAME: PTSP-Assistant-Hotfix-v3.0.12-AUTO-UPDATE.exe
+      SOURCE_DIR: upload/3.0.12/source
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Synchronize latest main
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git fetch origin main
+          git checkout -B main origin/main
+
+      - name: Reconstruct and verify replacement files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $items = Get-Content "$env:SOURCE_DIR/files.json" -Raw | ConvertFrom-Json
+          $payload = Join-Path $PWD 'payload'
+          New-Item -ItemType Directory -Force -Path $payload | Out-Null
+
+          foreach ($item in $items) {
+            $partDir = Join-Path $env:SOURCE_DIR $item.key
+            $parts = @(Get-ChildItem $partDir -Filter 'part-*.txt' | Sort-Object Name)
+            if ($parts.Count -ne [int]$item.parts) {
+              Write-Host "Directory listing for $partDir"
+              Get-ChildItem $partDir -Force -ErrorAction SilentlyContinue | Format-List FullName,Length
+              throw "Jumlah potongan tidak sesuai untuk $($item.path): $($parts.Count) != $($item.parts)"
+            }
+
+            $base64 = ($parts | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+            $compressed = [Convert]::FromBase64String($base64)
+            $input = [IO.MemoryStream]::new($compressed)
+            $gzip = [IO.Compression.GZipStream]::new($input, [IO.Compression.CompressionMode]::Decompress)
+            $output = [IO.MemoryStream]::new()
+            $gzip.CopyTo($output)
+            $gzip.Dispose(); $input.Dispose()
+            $bytes = $output.ToArray(); $output.Dispose()
+
+            if ($bytes.Length -ne [int]$item.size) {
+              throw "Ukuran hasil tidak sesuai untuk $($item.path): $($bytes.Length) != $($item.size)"
+            }
+            $sha = [BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($bytes)).Replace('-', '').ToLowerInvariant()
+            if ($sha -ne $item.sha256) {
+              throw "SHA-256 tidak sesuai untuk $($item.path): $sha != $($item.sha256)"
+            }
+
+            $destination = Join-Path $payload $item.path
+            New-Item -ItemType Directory -Force -Path (Split-Path $destination -Parent) | Out-Null
+            [IO.File]::WriteAllBytes($destination, $bytes)
+            Write-Host "Verified: $($item.path)"
+          }
+
+      - name: Build payload archive and installer source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (Test-Path payload.zip) { Remove-Item payload.zip -Force }
+          Compress-Archive -Path 'payload\*' -DestinationPath payload.zip -CompressionLevel Optimal
+          $payloadBytes = [IO.File]::ReadAllBytes((Join-Path $PWD 'payload.zip'))
+          $payloadBase64 = [Convert]::ToBase64String($payloadBytes)
+          $segments = for ($i = 0; $i -lt $payloadBase64.Length; $i += 100) {
+            $length = [Math]::Min(100, $payloadBase64.Length - $i)
+            '"' + $payloadBase64.Substring($i, $length) + '"'
+          }
+          $payloadLiteral = $segments -join " +`r`n            "
+
+          $template = Get-Content '.github/ptsp-hotfix-installer-v2.cs' -Raw
+          $source = $template.Replace('__VERSION__', $env:VERSION).Replace('__PAYLOAD_BASE64__', $payloadLiteral)
+          [IO.File]::WriteAllText((Join-Path $PWD 'Installer.cs'), $source, [Text.UTF8Encoding]::new($false))
+          Write-Host "Generated Installer.cs lines: $((Get-Content Installer.cs).Count)"
+
+      - name: Compile Windows hotfix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          if (-not (Test-Path $csc)) { throw 'csc.exe tidak ditemukan' }
+          $compilerArgs = @(
+            '/nologo'
+            '/target:winexe'
+            '/platform:x64'
+            '/optimize+'
+            '/reference:System.Core.dll'
+            '/reference:System.IO.Compression.dll'
+            '/reference:System.IO.Compression.FileSystem.dll'
+            '/reference:System.Windows.Forms.dll'
+            "/out:$env:ASSET_NAME"
+            'Installer.cs'
+          )
+          & $csc $compilerArgs 2>&1 | Tee-Object -FilePath compiler.log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            Write-Host 'Compiler failed; showing the final 180 lines of Installer.cs'
+            $lines = Get-Content Installer.cs
+            $start = [Math]::Max(0, $lines.Count - 180)
+            for ($i = $start; $i -lt $lines.Count; $i++) {
+              Write-Host ("{0,6}: {1}" -f ($i + 1), $lines[$i])
+            }
+            throw "Kompilasi gagal: $code"
+          }
+          if (-not (Test-Path $env:ASSET_NAME)) { throw 'Asset EXE tidak terbentuk' }
+
+      - name: Calculate asset metadata
+        id: asset
+        shell: pwsh
+        run: |
+          $file = Get-Item $env:ASSET_NAME
+          $sha = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "size=$($file.Length)" >> $env:GITHUB_OUTPUT
+          "sha256=$sha" >> $env:GITHUB_OUTPUT
+          Write-Host "Size: $($file.Length)"
+          Write-Host "SHA-256: $sha"
+
+      - name: Create GitHub Release and upload asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $notes = "releases/$env:VERSION.md"
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:TAG $env:ASSET_NAME --clobber
+            if ($LASTEXITCODE -ne 0) { throw 'Upload asset release gagal' }
+            gh release edit $env:TAG --title "PTSP Assistant $env:TAG" --notes-file $notes --latest
+          } else {
+            gh release create $env:TAG $env:ASSET_NAME --title "PTSP Assistant $env:TAG" --notes-file $notes --latest
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Pembuatan GitHub Release gagal' }
+
+      - name: Verify public release asset
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = "https://github.com/${{ github.repository }}/releases/download/$env:TAG/$env:ASSET_NAME"
+          $download = Join-Path $env:RUNNER_TEMP $env:ASSET_NAME
+          $ok = $false
+          for ($attempt = 1; $attempt -le 8; $attempt++) {
+            try {
+              Invoke-WebRequest -Uri $url -OutFile $download -UseBasicParsing
+              $ok = $true
+              break
+            } catch {
+              Write-Host "Asset belum tersedia, percobaan $attempt"
+              Start-Sleep -Seconds ($attempt * 3)
+            }
+          }
+          if (-not $ok) { throw 'Asset release tidak dapat diunduh' }
+          if ((Get-Item $download).Length -ne [int64]'${{ steps.asset.outputs.size }}') { throw 'Ukuran asset release tidak sesuai' }
+          $sha = (Get-FileHash $download -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sha -ne '${{ steps.asset.outputs.sha256 }}') { throw 'SHA-256 asset release tidak sesuai' }
+          Write-Host "Public asset verified: $sha"
+
+      - name: Activate stable manifest
+        shell: pwsh
+        run: |
+          $manifest = [ordered]@{
+            schemaVersion = 1
+            channel = 'stable'
+            suiteVersion = $env:VERSION
+            extensionVersion = $env:VERSION
+            updaterVersion = '1.14.1'
+            minimumNativeHost = '1.14.1'
+            minimumExtensionVersion = '3.0.10'
+            publishedAt = '2026-08-01T04:35:00+07:00'
+            mandatory = $false
+            components = [ordered]@{
+              extension = $env:VERSION
+              credentialNativeHost = '1.13.0'
+              integratedUpdaterHost = '1.14.1'
+              updateHelper = '1.0.1'
+              fileDialogHost = 'bundled'
+              converterHost = 'bundled'
+              sharing = 'bundled'
+            }
+            installer = [ordered]@{
+              name = $env:ASSET_NAME
+              url = "https://github.com/${{ github.repository }}/releases/download/$env:TAG/$env:ASSET_NAME"
+              sha256 = '${{ steps.asset.outputs.sha256 }}'
+              size = [int64]'${{ steps.asset.outputs.size }}'
+            }
+            changes = @(
+              'Mengaktifkan publikasi dan pembaruan otomatis melalui GitHub Release.'
+              'Memindahkan preview pihak, Data Umum SIPP, dan Data Anak ke submenu Autofill.'
+              'Memulihkan tombol konversi DOCX ke PDF pada menu Konverter.'
+              'Memperbaiki antrean otomatis pengambilan SKUM SIPP dan pembuatan flyer Santrimo.'
+              'Mempertahankan validasi nama pihak utama sebelum data perkara digunakan.'
+            )
+          }
+          $json = $manifest | ConvertTo-Json -Depth 8
+          [IO.File]::WriteAllText((Join-Path $PWD 'stable/latest.json'), $json + "`n", [Text.UTF8Encoding]::new($false))
+
+      - name: Commit stable manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add stable/latest.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Publish PTSP Assistant $env:TAG"
+            git push origin main
+          }
