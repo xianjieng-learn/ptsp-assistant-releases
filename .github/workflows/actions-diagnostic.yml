@@ -1,0 +1,20 @@
+name: PTSP Actions diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "diagnostics/actions-check.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm Actions execution
+        run: |
+          echo "GitHub Actions is active for $GITHUB_REPOSITORY"
+          test -f diagnostics/actions-check.txt
